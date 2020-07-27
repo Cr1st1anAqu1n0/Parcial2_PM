@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script type="text/javascript">
+
+		var width=300, height=300;
+		var canvas, ctx, imageData, ani=0;
+		var mx=0, my=0;
+
+		var zb=new Array(width*height);
+		var data=[
+			{x:0, y:907, z:0, r:806, c:0},
+			{x:0, y:-84, z:0, r:65, c:0},
+			{x:0, y:32, z:0, r:101, c:0},
+			{x:-24, y:-106, z:56, r:12, c:180},
+			{x:24, y:-106, z:56, r:12, c:180},
+			{x:0, y:-90, z:66, r:14, c:10},
+			{x:0, y:-12, z:86, r:12, c:180},
+			{x:0, y:18, z:95, r:12, c:180},
+			{x:0, y:48, z:95, r:12, c:180},
+			];
+
+		function sp(x, y, z, r, col)
+		{
+			var xi, yi, xs, ys, xe, ye, pos;
+			xs=x-r; ys=y-r; xe=x+r; ye=y+r;
+			if (xs<0) xs=0;
+			if (ys<0) ys=0;
+			if (xe>=width) xe=width-1;
+			if (ye>=height) ye=height-1;
+			
+			for (yi=ys; yi<=ye; yi++)
+			{
+				var b=(yi-y);
+				b*=b;
+				var r2=(r*r)-b;
+				pos=((yi*width)+xs);
+
+				for (xi=xs; xi<=xe; xi++)
+				{
+					var a=(xi-x);
+					a*=a;
+					if (a<r2)
+					{
+						var c=(Math.sqrt((r*r)-a-b));
+						if ((c+z)>zb[pos])
+						{
+							if (col) imageData.data[pos*4+3]=col+100-(c*100/r);
+							zb[pos]=c+z;
+						}
+					}
+					pos++;
+				}
+			}
+		}
+
+		function ssao()
+		{
+			var x, y, x2, y2, n, col;
+
+			
+			for (y=20; y<height-20; y++)
+			{
+				pos=20+width*y;
+				for (x=20; x<width-20; x++)
+				{
+					if (zb[pos]!=-1000000000)
+					{
+						col=0;
+						for (y2=-11+y; y2<5+y; y2+=6)
+						{
+							for (x2=-11+x; x2<5+x; x2+=6)
+							{
+								if (zb[y2*width+x2]>zb[pos]+3)
+								{
+									if (zb[y2*width+x2]-zb[pos]<30)
+									{
+										col+=(zb[y2*width+x2]-zb[pos]);
+									}
+									else col+=30;
+								}
+							}
+						}
+						col+=imageData.data[pos*4+3];
+						if (col>255) col=255;
+						imageData.data[pos*4+3]=col;
+					}
+					pos++;
+				}
+			}
+		}
+
+		function animacion()
+		{
+			var sa, ca, sb, cb, a, b, n, x, y, z, xr, yr, zr, r, pos=0;
+
+			for (var pos=3; pos<width*height*4; pos+=4)
+			{
+				imageData.data[pos]=0;
+			}
+			for (pos=0; pos<width*height; pos++)
+			{
+				zb[pos]=-1000000000;
+			}
+
+			a=-.3+Math.sin(ani/10)*.15;
+			b=(-mx+150)/200;
+			sa=Math.sin(a); ca=Math.cos(a);
+			sb=Math.sin(b); cb=Math.cos(b);
+			for (n=0; n<data.length; n++)
+			{
+				x=data[n].x;
+				y=data[n].y;
+				z=data[n].z;
+				r=data[n].r;
+				
+				var zoom=.8;
+
+				xr=x*zoom;
+				yr=(y*ca-z*sa)*zoom;
+				zr=(y*sa+z*ca)*zoom;
+				r*=zoom;
+				
+				x=xr; y=yr; z=zr;
+
+				xr=x*cb-z*sb;
+				yr=y;
+				zr=x*sb+z*cb;
+
+				xr+=width/2;
+				yr+=height/2;
+				sp(parseInt(xr), parseInt(yr), zr, parseInt(r), data[n].c);
+			}
+
+			ssao();
+			ctx.putImageData(imageData, 0, 0);
+			ani++;
+			if (ani<=1000)
+			{
+				window.setTimeout("animacion()", 20);
+			}
+		}
+
+		function mouse(e)
+		{
+			if (e)
+			{
+				mx=e.clientX;
+				my=e.clientY;
+			}
+		}
+
+		function ini()
+		{
+			canvas=document.getElementById('muñeco_canvas');
+			ctx=canvas.getContext('2d');
+			imageData = ctx.getImageData(0, 0, width, height);
+			ctx.putImageData(imageData, 0, 0);
+			
+			document.onmousemove=mouse;
+			
+			animacion();
+		}
+	</script>
+</head>
+
+<body onload="ini();">
+	<canvas id="muñeco_canvas" width="300" height="300"></canvas>
+	</div>
+</body>
+
+</html>
